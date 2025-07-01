@@ -1,7 +1,21 @@
 #include "../includes/definitions.hpp"
+#include "../includes/ac_simul.hpp"
 
 #include <random>
 #include <cmath>
+
+/**
+ *  Real-time calculation factors 
+ *  
+ */ 
+// { company, { energy used per simulation time, battery cap per % soc, miles travelled per simul time x 100 } }
+map<_ac_type, vector<int>> calc_factors = {
+    { ALPHA,   {192, 3200, 12} },
+    { BRAVO,   {150, 1000, 10} },
+    { CHARLIE, {352, 2200, 16} },
+    { DELTA,   {72, 1200, 9} },
+    { ECHO,    {174, 1500, 3} }
+}; 
 
 void create_aircrafts(aircraft **ac_array, int size, _ac_map *map, int categories) {
     vector<int> cat_count(categories, 1);            // init array to atleasst 1 for each type
@@ -13,7 +27,7 @@ void create_aircrafts(aircraft **ac_array, int size, _ac_map *map, int categorie
     size--;
     for(int type=0; type<categories; type++) {       // fill aircraft array
         while(cat_count[type]) {
-            ac_array[size] = new aircraft(size, (_ac_type)type, map);
+            ac_array[size] = new aircraft(size, (_ac_type)type, map, &calc_factors);
             size--;
             cat_count[type]--;
         }
@@ -59,10 +73,15 @@ void fault_injection(_prob_map *pmap, aircraft **ac_array, int size, _fault_map 
 }
 
 void fault_service(_fault_map *q) {
-    
-}
-void charging_service() {
-
+    milliseconds curr;
+    if(q && !(q->empty())) {                        // enter only if map list is not empty
+        auto entry = q->begin();
+        get_counter_val(&curr);
+        if((curr) >= (entry->first)) {              // check if its time for fault 
+            set_fault_sig(entry->second, 1);        // set the fault signal for Aircraft
+            q->erase(entry);                        // remove from map
+        }
+    }
 }
 
 int data_recorder_service() {

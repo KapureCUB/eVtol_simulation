@@ -2,11 +2,11 @@
 #include "../includes/ac_simul.hpp"
 
 static _ac_map paramter_map = {
-    { ALPHA,   {120, 320, 60, 1600, 4} },
-    { BRAVO,   {100, 100, 20, 1500, 5} },
-    { CHARLIE, {160, 220, 80, 2200, 3}},
-    { DELTA,   {90, 120, 62, 800, 2} },
-    { ECHO,    {30, 150, 30, 5800, 2} }
+    { ALPHA,   {120, 320000, 60, 1600, 4} },
+    { BRAVO,   {100, 100000, 20, 1500, 5} },
+    { CHARLIE, {160, 220000, 80, 2200, 3}},
+    { DELTA,   {90, 120000, 62, 800, 2} },
+    { ECHO,    {30, 150000, 30, 5800, 2} }
 };
 
 static _prob_map probablity_map = {
@@ -18,6 +18,7 @@ static _prob_map probablity_map = {
 };
 
 _fault_map fault_queue;
+queue<_c_queue_entry*> charger_queue;
 
 int main() {
 
@@ -47,7 +48,7 @@ int main() {
     // }
 
     // Spawn threads
-    spawn_threads(&threadpool, TOTAL_AIRCRAFTS, aircraft_array);
+    spawn_threads(&threadpool, TOTAL_AIRCRAFTS, aircraft_array, &charger_queue);
 
     init_Timer();
 
@@ -56,7 +57,7 @@ int main() {
         update_Timer();
         get_counter_val(&curr);
     }
-
+    // terminate threads
     set_terminate_sig(true);
     for(auto &th: threadpool) {
         th.join();
