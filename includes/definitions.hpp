@@ -9,12 +9,12 @@
 
 #define TOTAL_AIRCRAFTS             (5)
 #define SIMULATION_TIME_HRS         (3)
-#define SIMULATION_FACTOR           (1000.0)            // 1 HOUR = 1 MINUTE SIMULATION = 1000 MILLISEC
+#define SIMULATION_FACTOR           (60000.0)            // 1 HOUR = 1 MINUTE SIMULATION = 60000 MILLISEC
 
 #define DOWNTIME_HOURS              (0.5)
 #define DOWNTIME_SIMUL_TIME         (DOWNTIME_HOURS * SIMULATION_FACTOR)     //msec to wait in simulation
 #define HRS_TO_MINUTES              (60)
-#define REAL_TO_REEL_TIME_FACTOR    (0.001)
+#define REAL_TO_REEL_TIME_FACTOR    (0.00001666)
 #define BATTERY_SOC_THREASHOLD      (10)
 
 using namespace std;
@@ -80,18 +80,18 @@ class aircraft {
     private:
         pid_t tid;
         _ac_info ac;
-        int flight_time;                    // in hours x 100
-        int miles_travelled;                // in mile x 100        
+        int flight_time;                    // in hours x 10^8
+        int miles_travelled;                // in mile x 10^4        
         _ac_stat status;
         _ac_stat prev_status;
         int fault_count;
         int battery_soc;                    // 100 to 0
-        int bat_cap_used;
+        double bat_cap_used;
         _charger_id c_id;
         int downtime;
-        map<_ac_type, vector<int>> *calc_factors;
+        map<_ac_type, vector<double>> *calc_factors;
     public:
-        aircraft(int num, _ac_type com, _ac_map *m, map<_ac_type, vector<int>> *c) {
+        aircraft(int num, _ac_type com, _ac_map *m, map<_ac_type, vector<double>> *c) {
             if((com<=4) && (com>=0) && m) {
                 vector<int> para = m->at(com);
                 ac.ac_num = num;
@@ -138,10 +138,10 @@ class aircraft {
 
         void update_ac_stats(milliseconds t) {
             if(status==IN_FLIGHT) {
-                flight_time += (t.count() * REAL_TO_REEL_TIME_FACTOR * 100);
+                flight_time += (t.count() * REAL_TO_REEL_TIME_FACTOR * 100000000.0);
                 miles_travelled += t.count() * (calc_factors->at(ac.company)[2]);
                 bat_cap_used += (t.count() * (calc_factors->at(ac.company)[0]));
-                battery_soc = (100 - (bat_cap_used % (calc_factors->at(ac.company)[1])));
+                battery_soc = (100 - ((int)bat_cap_used % (int)(calc_factors->at(ac.company)[1])));
             }
         }
 

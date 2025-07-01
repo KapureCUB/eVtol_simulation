@@ -9,12 +9,12 @@
  *  
  */ 
 // { company, { energy used per simulation time, battery cap per % soc, miles travelled per simul time x 100 } }
-map<_ac_type, vector<int>> calc_factors = {
-    { ALPHA,   {192, 3200, 12} },
-    { BRAVO,   {150, 1000, 10} },
-    { CHARLIE, {352, 2200, 16} },
-    { DELTA,   {72, 1200, 9} },
-    { ECHO,    {174, 1500, 3} }
+map<_ac_type, vector<double>> calc_factors = {
+    { ALPHA,   {3.2, 3200, 20} },
+    { BRAVO,   {2.5, 1000, 16.66} },
+    { CHARLIE, {5.8666, 2200, 26.66} },
+    { DELTA,   {1.2, 1200, 15} },
+    { ECHO,    {2.9, 1500, 5} }
 }; 
 
 void create_aircrafts(aircraft **ac_array, int size, _ac_map *map, int categories) {
