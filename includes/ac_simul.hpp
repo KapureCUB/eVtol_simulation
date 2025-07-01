@@ -13,7 +13,7 @@ typedef struct CHARGER_LIVE_INFO {
 
 void spawn_threads(vector<thread> *th_pool, int total_ac, aircraft **ac_array, queue<_c_queue_entry*> *cq);
 void aircraft_simul(int tid, aircraft *plane, queue<_c_queue_entry*> *cq);
-void charging_service(charger *ch, queue<_c_queue_entry> *cq);
+void charging_service(charger *ch, queue<_c_queue_entry*> *cq);
 void set_fault_sig(int ac, int state);
 int get_fault_sig(int ac);
 void set_terminate_sig(bool state);

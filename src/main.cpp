@@ -17,11 +17,12 @@ static _prob_map probablity_map = {
     { ECHO,    0.61 }
 };
 
-_fault_map fault_queue;
-queue<_c_queue_entry*> charger_queue;
-
 int main() {
 
+    _fault_map fault_queue;
+    charger global_charger;
+    queue<_c_queue_entry*> charger_queue;
+    
     vector<thread> threadpool;
     /*
     milliseconds curr, interval(50), ref;
@@ -37,33 +38,47 @@ int main() {
     */
     
     aircraft *aircraft_array[TOTAL_AIRCRAFTS];
+    cout << "--------Starting eVtol simulation--------" << endl;
+    cout << "Spawning " << TOTAL_AIRCRAFTS << " aircrafts" << endl;
     create_aircrafts(aircraft_array, TOTAL_AIRCRAFTS, &paramter_map, TOTAL_CATEGORIES);
     // for(auto i: aircraft_array) {
     //     cout << i->get_company() << " passengers: " << i->get_passengers() << endl;
     // }
     fault_injection(&probablity_map, aircraft_array, TOTAL_AIRCRAFTS, &fault_queue);
-    // cout << "Faults at --" << endl;
-    // for(auto i: fault_queue) {
-    //     cout << "AC: " << i.second << ", time: " << (i.first).count() << endl;
-    // }
+    cout << "Faults at --" << endl;
+    for(auto i: fault_queue) {
+        cout << "AC: " << i.second << ", time: " << (i.first).count() << endl;
+    }
 
     // Spawn threads
     spawn_threads(&threadpool, TOTAL_AIRCRAFTS, aircraft_array, &charger_queue);
 
     init_Timer();
 
-    milliseconds dummy(5000), curr(0);
-    while(curr < dummy) {
+    int total_time = SIMULATION_TIME_HRS * SIMULATION_FACTOR;
+    cout << "Simulating for " << SIMULATION_TIME_HRS << " hours." << " Time: " << SIMULATION_TIME_HRS << " minutes (" << total_time << ")"<< endl;
+    cout << "All fights airborne!" << endl;
+    milliseconds total_sim_time(total_time), curr(0);
+    while(curr < total_sim_time) {
+        fault_service(&fault_queue);
+        charging_service(&global_charger, &charger_queue);
         update_Timer();
         get_counter_val(&curr);
     }
     // terminate threads
+    cout << "Terminating all fight sims.." << endl;
     set_terminate_sig(true);
     for(auto &th: threadpool) {
         th.join();
     }
 
+    for(auto a: aircraft_array) {
+        cout << "Aircraft: " << a->get_ac_num() << " -- flight time: " << a->get_flight_time() << \
+        " hours, miles: " << a->get_miles() << ", faults: " << a->get_fault_count() << endl;  
+    }
     delete_aircrafts(aircraft_array, TOTAL_AIRCRAFTS);
+
+    cout << "-----------End of simulation----------" << endl;
     
     return 0;
 }

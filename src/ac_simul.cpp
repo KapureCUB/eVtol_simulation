@@ -1,16 +1,18 @@
 #include "../includes/ac_simul.hpp"
 
-#define SERVICE_INTERVAL        (500)
-#define CHARGING_INTERVAL       (250)
+#define SERVICE_INTERVAL        (10)
+#define CHARGING_INTERVAL       (5)
 
-int fault_signals[TOTAL_AIRCRAFTS];
+int fault_signals[TOTAL_AIRCRAFTS] = {0};
 // 0 = not charging/done charging, 1,2,3 = on charging with resp charger 
-int charge_signals[TOTAL_AIRCRAFTS];
-bool global_terminate;
+int charge_signals[TOTAL_AIRCRAFTS] = {0};
+bool global_terminate = false;
 
-static _c_live_info charger1_live;
-static _c_live_info charger2_live;
-static _c_live_info charger3_live;
+static milliseconds charging_ref(0);
+
+static _c_live_info charger1_live = {READY_TO_CHARGE, -1, 0};
+static _c_live_info charger2_live = {READY_TO_CHARGE, -1, 0};
+static _c_live_info charger3_live = {READY_TO_CHARGE, -1, 0};
 
 void spawn_threads(vector<thread> *th_pool, int total_ac, aircraft **ac_array, queue<_c_queue_entry*> *cq) {
     if(th_pool && ac_array) {
@@ -28,22 +30,21 @@ void aircraft_simul(int tid, aircraft *plane, queue<_c_queue_entry*> *cq)  {
         while(!global_terminate) {
             if(isduration(ref, interval)) {
                 plane->state_machine(interval, charge_signals[plane->get_ac_num()], 
-                                     fault_signals[plane->get_ac_num()], cq);
+                                     &fault_signals[plane->get_ac_num()], cq);
                 get_counter_val(&ref);
             }
         }
-        cout << "Terminating service for aircraft: " << plane->get_ac_num() << endl;
     }
 }
 
 void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
     milliseconds interval(CHARGING_INTERVAL);
-    static milliseconds ref;
-    if(ch && cq && isduration(ref, interval)) {
+    if(ch && cq && isduration(charging_ref, interval)) {
         if(charger1_live.status == BUSY_CHARGING) {     // update live status 
             charger1_live.c_time_left -= interval.count();
             if(charger1_live.c_time_left <= 0) {        // check if done charging   
                 charge_signals[charger1_live.ac_num] = 0;
+                cout << "Charging done for: " << charger1_live.ac_num << endl;
                 charger1_live.status = READY_TO_CHARGE;
                 charger1_live.ac_num = -1;
                 charger1_live.c_time_left = 0;
@@ -56,6 +57,7 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
             charger2_live.c_time_left -= interval.count();
             if(charger2_live.c_time_left <= 0) {        // check if done charging   
                 charge_signals[charger2_live.ac_num] = 0;
+                cout << "Charging done for: " << charger2_live.ac_num << endl;
                 charger2_live.status = READY_TO_CHARGE;
                 charger2_live.ac_num = -1;
                 charger2_live.c_time_left = 0;
@@ -68,6 +70,7 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
             charger3_live.c_time_left -= interval.count();
             if(charger3_live.c_time_left <= 0) {        // check if done charging   
                 charge_signals[charger3_live.ac_num] = 0;
+                cout << "Charging done for: " << charger3_live.ac_num << endl;
                 charger3_live.status = READY_TO_CHARGE;
                 charger3_live.ac_num = -1;
                 charger3_live.c_time_left = 0;
@@ -86,8 +89,8 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
                 cq->pop();
                 charge_signals[charger1_live.ac_num] = CHARGER_1;
                 ch->update_charger_stat(CHARGER_1, BUSY_CHARGING);
-            } 
-            if(charger2_live.status == READY_TO_CHARGE) {     
+                cout << "Charging started for: " << charger1_live.ac_num << " on charger: 1"<< endl; 
+            } else if(charger2_live.status == READY_TO_CHARGE) {     
                 _c_queue_entry *entry = cq->front();
                 charger2_live.ac_num = entry->ac_num;
                 charger2_live.c_time_left = entry->charge_time;
@@ -95,8 +98,8 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
                 cq->pop();
                 charge_signals[charger2_live.ac_num] = CHARGER_2;
                 ch->update_charger_stat(CHARGER_2, BUSY_CHARGING);
-            }
-            if(charger3_live.status == READY_TO_CHARGE) {     
+                cout << "Charging started for: " << charger2_live.ac_num << " on charger: 2"<<  endl; 
+            } else if(charger3_live.status == READY_TO_CHARGE) {     
                 _c_queue_entry *entry = cq->front();
                 charger3_live.ac_num = entry->ac_num;
                 charger3_live.c_time_left = entry->charge_time;
@@ -104,15 +107,16 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
                 cq->pop();
                 charge_signals[charger3_live.ac_num] = CHARGER_3;
                 ch->update_charger_stat(CHARGER_3, BUSY_CHARGING);
+                cout << "Charging started for: " << charger3_live.ac_num << " on charger: 3"<<  endl;
             }
         } 
-        get_counter_val(&ref);
+        get_counter_val(&charging_ref);
     }
 }
 
 void set_fault_sig(int ac, int state) {
-    if(ac<=TOTAL_AIRCRAFTS) {
-        fault_signals[ac-1] = state;
+    if(ac<TOTAL_AIRCRAFTS) {
+        fault_signals[ac] = state;
     }
 }
 

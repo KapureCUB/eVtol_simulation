@@ -14,7 +14,7 @@
 #define DOWNTIME_HOURS              (0.5)
 #define DOWNTIME_SIMUL_TIME         (DOWNTIME_HOURS * SIMULATION_FACTOR)     //msec to wait in simulation
 #define HRS_TO_MINUTES              (60)
-#define REAL_TO_REEL_TIME_FACTOR    (0.00001666)
+#define REAL_TO_REEL_TIME_FACTOR    (0.00001666)         
 #define BATTERY_SOC_THREASHOLD      (10)
 
 using namespace std;
@@ -80,12 +80,12 @@ class aircraft {
     private:
         pid_t tid;
         _ac_info ac;
-        int flight_time;                    // in hours x 10^8
-        int miles_travelled;                // in mile x 10^4        
+        double flight_time;                    // in hours x 10^8
+        double miles_travelled;                // in mile x 10^4        
         _ac_stat status;
         _ac_stat prev_status;
         int fault_count;
-        int battery_soc;                    // 100 to 0
+        double battery_soc;                    // 100 to 0
         double bat_cap_used;
         _charger_id c_id;
         int downtime;
@@ -138,18 +138,25 @@ class aircraft {
 
         void update_ac_stats(milliseconds t) {
             if(status==IN_FLIGHT) {
-                flight_time += (t.count() * REAL_TO_REEL_TIME_FACTOR * 100000000.0);
+                flight_time += (t.count() * REAL_TO_REEL_TIME_FACTOR);
                 miles_travelled += t.count() * (calc_factors->at(ac.company)[2]);
                 bat_cap_used += (t.count() * (calc_factors->at(ac.company)[0]));
-                battery_soc = (100 - ((int)bat_cap_used % (int)(calc_factors->at(ac.company)[1])));
+                battery_soc = (100 - ((int)bat_cap_used / (int)(calc_factors->at(ac.company)[1])));
             }
         }
 
-        void state_machine(milliseconds t, int charge_sig, int fault_sig, queue<_c_queue_entry*> *cq) {
+        double get_flight_time() { return flight_time; }
+        double get_miles() { return miles_travelled; }
+        double get_fault_count() { return fault_count; }
+
+
+        void state_machine(milliseconds t, int charge_sig, int *fault_sig, queue<_c_queue_entry*> *cq) {
             switch(status) {
                 case IN_FLIGHT:
-                    if(fault_sig) {
-                        fault_sig = 0;
+                    if(*fault_sig) {
+                        fault_count++;
+                        *fault_sig = 0;
+                        cout << "Flight: " << ac.ac_num << " sent to maintenance" << endl;
                         status = UNDER_MAINTENANCE;
                     } else {
                         update_ac_stats(t);
@@ -160,12 +167,15 @@ class aircraft {
                             n->charge_time = ac.toc_hrs*SIMULATION_FACTOR/100;
                             cq->push(n);
                             status = IN_CHARGE_QUEUE;
+                            cout << "Flight: " << ac.ac_num << " sent to charging" << endl;
                         }
                     }
                     break;
                 case IN_CHARGE_QUEUE:
-                    if(fault_sig) {
-                        fault_sig = 0;
+                    if(*fault_sig) {
+                        fault_count++;
+                        *fault_sig = 0;
+                        cout << "Flight: " << ac.ac_num << " sent to maintenance" << endl;
                         status = UNDER_MAINTENANCE;
                     } else {
                         if(charge_sig > 0) {
@@ -175,9 +185,11 @@ class aircraft {
                     }
                     break;
                 case CHARGING:
-                    if(fault_sig) {
+                    if(*fault_sig) {
+                        fault_count++;
                         c_id = NO_CHARGER;
-                        fault_sig = 0;
+                        *fault_sig = 0;
+                        cout << "Flight: " << ac.ac_num << " sent to maintenance" << endl;
                         status = UNDER_MAINTENANCE;
                     } else {
                         if(charge_sig == 0) {
@@ -185,13 +197,15 @@ class aircraft {
                             battery_soc = 100;
                             c_id = NO_CHARGER;
                             status = IN_FLIGHT;
+                            cout << "Flight: " << ac.ac_num << " air borne" << endl;
                         }
                     }
                     break;
                 case UNDER_MAINTENANCE:
-                    if(fault_sig) {                     // restart servicing again
+                    if(*fault_sig) {                     // restart servicing again
+                        fault_count++;
                         downtime = 0;
-                        fault_sig = 0;  
+                        *fault_sig = 0;  
                     }
                     downtime += t.count();
                     if(downtime >= DOWNTIME_SIMUL_TIME) {
@@ -277,5 +291,6 @@ class charger {
 void create_aircrafts(aircraft **ac_array, int size, _ac_map *map, int categories);
 void delete_aircrafts(aircraft **ac_array, int size);
 void fault_injection(_prob_map *pmap, aircraft **ac_array, int size, _fault_map *q);
+void fault_service(_fault_map *q);
 
 #endif //_DEFINITIONS_
