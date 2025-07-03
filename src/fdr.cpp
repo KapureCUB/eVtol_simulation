@@ -55,6 +55,11 @@ void create_aircrafts(aircraft **ac_array, int size, _ac_map *map, int categorie
     while(remain--) {
         cat_count[(rand()%categories)]++;            // assign randomly count for each type 
     }
+    cout << "Alpha: " << cat_count[0] << " ";
+    cout << "Bravo: " << cat_count[1] << " ";
+    cout << "Charlie: " << cat_count[2] << " ";
+    cout << "Delta: " << cat_count[3] << " ";
+    cout << "Echo: " << cat_count[4] << endl;
     size--;
     for(int type=(TOTAL_CATEGORIES-1); type>=0; type--) {       // fill aircraft array
         while(cat_count[type]) {

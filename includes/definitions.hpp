@@ -8,11 +8,16 @@
 #include <fstream>
 #include "../includes/timer.hpp"
 
-#define AIRCRAFTS                   (20)    
-#define TOTAL_AIRCRAFTS             ((AIRCRAFTS < 5) ? (5) : (AIRCRAFTS))           // MINIMUM 5 AIRCRAFTS     
-#define SIMULATION_TIME_HRS         (3)
-#define SIMULATION_FACTOR           (60000.0)            // 1 HOUR = 1 MINUTE SIMULATION = 60000 MILLISEC
+/**
+ * @brief Simulation macros. Set these for changing simulation conditions
+ * 
+ */
+#define AIRCRAFTS                   (20)  // -- Set this for aircrafts                 
+#define SIMULATION_TIME_HRS         (3)   // -- Set this for hours 
 
+// Derived and system macros
+#define TOTAL_AIRCRAFTS             ((AIRCRAFTS < 5) ? (5) : (AIRCRAFTS))    // MINIMUM 5 AIRCRAFTS     
+#define SIMULATION_FACTOR           (60000.0)                                // 1 HOUR = 1 MINUTE SIMULATION = 60000 MILLISEC
 #define DOWNTIME_HOURS              (0.5)
 #define DOWNTIME_SIMUL_TIME         (DOWNTIME_HOURS * SIMULATION_FACTOR)     //msec to wait in simulation
 #define HRS_TO_MINUTES              (60)
