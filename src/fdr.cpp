@@ -196,7 +196,7 @@ bool write_to_file(ofstream &outfile, const string &line) {
  * @brief Records aircraft data at fixed intervals and writes to the output file.
  *        Collects flight and charging parameters from all aircraft and logs them as a single line.
  *        Data line:
- *        {"timestamp" "ac_num" "company" "status" "flight_time" "miles_travelled" "battery_soc" "c_id" "charge_time" ...}
+ *        {"timestamp" "ac_num" "company" "status" "flight_time" "miles_travelled" "battery_soc" "c_id" "charge_time" "fault_count" ...}
  * 
  * @param ac_array Array of pointers to aircraft objects.
  * @param size Number of aircraft in the array.
@@ -222,6 +222,7 @@ void data_recorder_service(aircraft **ac_array, int size, ofstream &outfile) {
             line << fixed << setprecision(4) << ac->get_battery_soc() << " ";
             line << ac->get_charger_id() << " ";
             line << fixed << setprecision(4) << ac->get_charge_time() << " ";
+            line << ac->get_fault_count() << " ";
         }
         // dump to file
         write_to_file(outfile, line.str());
