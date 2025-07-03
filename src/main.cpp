@@ -1,6 +1,8 @@
 #include "../includes/definitions.hpp"
 #include "../includes/ac_simul.hpp"
 
+string log_file = "evtol_sim_log.txt";
+
 static _ac_map paramter_map = {
     { ALPHA,   {120, 320000, 60, 1600, 4} },
     { BRAVO,   {100, 100000, 20, 1500, 5} },
@@ -19,6 +21,7 @@ static _prob_map probablity_map = {
 
 int main() {
 
+    ofstream fp;
     _fault_map fault_queue;
     charger global_charger;
     queue<_c_queue_entry*> charger_queue;
@@ -53,6 +56,7 @@ int main() {
     // Spawn threads
     spawn_threads(&threadpool, TOTAL_AIRCRAFTS, aircraft_array, &charger_queue);
 
+    fp = open_log_file(log_file);
     init_Timer();
 
     int total_time = SIMULATION_TIME_HRS * SIMULATION_FACTOR;
@@ -62,6 +66,7 @@ int main() {
     while(curr < total_sim_time) {
         fault_service(&fault_queue);
         charging_service(&global_charger, &charger_queue);
+        data_recorder_service(aircraft_array, TOTAL_AIRCRAFTS, fp);
         update_Timer();
         get_counter_val(&curr);
     }
@@ -76,6 +81,9 @@ int main() {
         cout << "Aircraft: " << a->get_ac_num() << " -- flight time: " << a->get_flight_time() << \
         " hours, miles: " << a->get_miles() << ", faults: " << a->get_fault_count() << endl;  
     }
+
+    cout << "\nFlight data recorded in file: " << log_file << endl;
+    close_file(fp);
     delete_aircrafts(aircraft_array, TOTAL_AIRCRAFTS);
 
     cout << "-----------End of simulation----------" << endl;

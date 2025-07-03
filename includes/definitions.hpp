@@ -5,9 +5,11 @@
 #include <queue>
 #include <map>
 #include <thread>
+#include <fstream>
 #include "../includes/timer.hpp"
 
-#define TOTAL_AIRCRAFTS             (5)
+#define AIRCRAFTS                   (20)    
+#define TOTAL_AIRCRAFTS             ((AIRCRAFTS < 5) ? (5) : (AIRCRAFTS))           // MINIMUM 5 AIRCRAFTS     
 #define SIMULATION_TIME_HRS         (3)
 #define SIMULATION_FACTOR           (60000.0)            // 1 HOUR = 1 MINUTE SIMULATION = 60000 MILLISEC
 
@@ -80,14 +82,16 @@ class aircraft {
     private:
         pid_t tid;
         _ac_info ac;
-        double flight_time;                    // in hours x 10^8
-        double miles_travelled;                // in mile x 10^4        
+        double flight_time;                    // in hours
+        double miles_travelled;                // in mile        
         _ac_stat status;
         _ac_stat prev_status;
         int fault_count;
         double battery_soc;                    // 100 to 0
         double bat_cap_used;
         _charger_id c_id;
+        double charge_time;                    // in hours
+        int charge_time_offset;                // offset to subtract from charge time
         int downtime;
         map<_ac_type, vector<double>> *calc_factors;
     public:
@@ -109,6 +113,9 @@ class aircraft {
                 fault_count = 0;
                 battery_soc = 100;
                 bat_cap_used = 0;
+                charge_time = 0;
+                charge_time_offset = 0;
+                downtime = 0;
                 c_id = NO_CHARGER;
                 calc_factors = c;
             }
@@ -118,6 +125,10 @@ class aircraft {
 
         int get_ac_num() {
             return (this->ac).ac_num;
+        }
+
+        int get_ac_status() {
+            return status;
         }
 
         _ac_type get_company() {
@@ -146,14 +157,17 @@ class aircraft {
         }
 
         double get_flight_time() { return flight_time; }
+        double get_charge_time() { return charge_time; }
         double get_miles() { return miles_travelled; }
         double get_fault_count() { return fault_count; }
+        double get_battery_soc() { return battery_soc; }
+        int get_charger_id() { return c_id; }
 
 
         void state_machine(milliseconds t, int charge_sig, int *fault_sig, queue<_c_queue_entry*> *cq) {
             switch(status) {
                 case IN_FLIGHT:
-                    if(*fault_sig) {
+                    if(*fault_sig==1) {
                         fault_count++;
                         *fault_sig = 0;
                         cout << "Flight: " << ac.ac_num << " sent to maintenance" << endl;
@@ -172,7 +186,7 @@ class aircraft {
                     }
                     break;
                 case IN_CHARGE_QUEUE:
-                    if(*fault_sig) {
+                    if(*fault_sig==1) {
                         fault_count++;
                         *fault_sig = 0;
                         cout << "Flight: " << ac.ac_num << " sent to maintenance" << endl;
@@ -185,24 +199,27 @@ class aircraft {
                     }
                     break;
                 case CHARGING:
-                    if(*fault_sig) {
+                    if(*fault_sig==1) {
                         fault_count++;
                         c_id = NO_CHARGER;
-                        *fault_sig = 0;
+                        *fault_sig = 2;                                 // setting to 2 to notify charging service
                         cout << "Flight: " << ac.ac_num << " sent to maintenance" << endl;
                         status = UNDER_MAINTENANCE;
                     } else {
+                        charge_time += (t.count() * REAL_TO_REEL_TIME_FACTOR);
+                        charge_time_offset += t.count();            // keep a record for charge time 
                         if(charge_sig == 0) {
+                            charge_time_offset = 0;          // reset the offset to 0
                             bat_cap_used = 0;
                             battery_soc = 100;
                             c_id = NO_CHARGER;
                             status = IN_FLIGHT;
-                            cout << "Flight: " << ac.ac_num << " air borne" << endl;
+                            cout << "Flight: " << ac.ac_num << " air borne after charging" << endl;
                         }
                     }
                     break;
                 case UNDER_MAINTENANCE:
-                    if(*fault_sig) {                     // restart servicing again
+                    if(*fault_sig==1) {                     // restart servicing again
                         fault_count++;
                         downtime = 0;
                         *fault_sig = 0;  
@@ -213,8 +230,9 @@ class aircraft {
                         if(prev_status == CHARGING || prev_status == IN_CHARGE_QUEUE) {
                             _c_queue_entry *n = new _c_queue_entry;
                             n->ac_num = ac.ac_num;
-                            n->charge_time = ac.toc_hrs*SIMULATION_FACTOR/100;
+                            n->charge_time = (ac.toc_hrs*SIMULATION_FACTOR/100) - charge_time_offset;
                             cq->push(n);
+                            charge_time_offset = 0;
                             status = IN_CHARGE_QUEUE;
                         } else {
                             status = prev_status;
@@ -292,5 +310,9 @@ void create_aircrafts(aircraft **ac_array, int size, _ac_map *map, int categorie
 void delete_aircrafts(aircraft **ac_array, int size);
 void fault_injection(_prob_map *pmap, aircraft **ac_array, int size, _fault_map *q);
 void fault_service(_fault_map *q);
+void data_recorder_service(aircraft **ac_array, int size, ofstream &outfile);
+ofstream open_log_file(const string &filename);
+void close_file(ofstream &outfile);
+bool write_to_file(ofstream &outfile, const string &line);
 
 #endif //_DEFINITIONS_

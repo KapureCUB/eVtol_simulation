@@ -42,9 +42,9 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
     if(ch && cq && isduration(charging_ref, interval)) {
         if(charger1_live.status == BUSY_CHARGING) {     // update live status 
             charger1_live.c_time_left -= interval.count();
-            if(charger1_live.c_time_left <= 0) {        // check if done charging   
+            if((charger1_live.c_time_left <= 0) || (fault_signals[charger1_live.ac_num]==2)) {        // check if done charging   
                 charge_signals[charger1_live.ac_num] = 0;
-                cout << "Charging done for: " << charger1_live.ac_num << endl;
+                //cout << "Charging done for: " << charger1_live.ac_num << endl;
                 charger1_live.status = READY_TO_CHARGE;
                 charger1_live.ac_num = -1;
                 charger1_live.c_time_left = 0;
@@ -55,9 +55,9 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
         }
         if(charger2_live.status == BUSY_CHARGING) {     // update live status
             charger2_live.c_time_left -= interval.count();
-            if(charger2_live.c_time_left <= 0) {        // check if done charging   
+            if((charger2_live.c_time_left <= 0) || (fault_signals[charger2_live.ac_num]==2)) {        // check if done charging   
                 charge_signals[charger2_live.ac_num] = 0;
-                cout << "Charging done for: " << charger2_live.ac_num << endl;
+                //cout << "Charging done for: " << charger2_live.ac_num << endl;
                 charger2_live.status = READY_TO_CHARGE;
                 charger2_live.ac_num = -1;
                 charger2_live.c_time_left = 0;
@@ -68,9 +68,9 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
         }
         if(charger3_live.status == BUSY_CHARGING) {     // update live status
             charger3_live.c_time_left -= interval.count();
-            if(charger3_live.c_time_left <= 0) {        // check if done charging   
+            if((charger3_live.c_time_left <= 0) || (fault_signals[charger3_live.ac_num]==2)) {        // check if done charging   
                 charge_signals[charger3_live.ac_num] = 0;
-                cout << "Charging done for: " << charger3_live.ac_num << endl;
+                //cout << "Charging done for: " << charger3_live.ac_num << endl;
                 charger3_live.status = READY_TO_CHARGE;
                 charger3_live.ac_num = -1;
                 charger3_live.c_time_left = 0;
@@ -89,7 +89,7 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
                 cq->pop();
                 charge_signals[charger1_live.ac_num] = CHARGER_1;
                 ch->update_charger_stat(CHARGER_1, BUSY_CHARGING);
-                cout << "Charging started for: " << charger1_live.ac_num << " on charger: 1"<< endl; 
+                //cout << "Charging started for: " << charger1_live.ac_num << " on charger: 1"<< endl; 
             } else if(charger2_live.status == READY_TO_CHARGE) {     
                 _c_queue_entry *entry = cq->front();
                 charger2_live.ac_num = entry->ac_num;
@@ -98,7 +98,7 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
                 cq->pop();
                 charge_signals[charger2_live.ac_num] = CHARGER_2;
                 ch->update_charger_stat(CHARGER_2, BUSY_CHARGING);
-                cout << "Charging started for: " << charger2_live.ac_num << " on charger: 2"<<  endl; 
+                //cout << "Charging started for: " << charger2_live.ac_num << " on charger: 2"<<  endl; 
             } else if(charger3_live.status == READY_TO_CHARGE) {     
                 _c_queue_entry *entry = cq->front();
                 charger3_live.ac_num = entry->ac_num;
@@ -107,7 +107,7 @@ void charging_service(charger *ch, queue<_c_queue_entry*> *cq) {
                 cq->pop();
                 charge_signals[charger3_live.ac_num] = CHARGER_3;
                 ch->update_charger_stat(CHARGER_3, BUSY_CHARGING);
-                cout << "Charging started for: " << charger3_live.ac_num << " on charger: 3"<<  endl;
+                //cout << "Charging started for: " << charger3_live.ac_num << " on charger: 3"<<  endl;
             }
         } 
         get_counter_val(&charging_ref);
@@ -149,5 +149,3 @@ int get_charge_sig(int ac) {
     }
     return ret;
 }
-
-

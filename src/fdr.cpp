@@ -3,6 +3,12 @@
 
 #include <random>
 #include <cmath>
+#include <sstream>
+#include <iomanip>
+
+#define FDR_INTERVAL                (1000)
+
+milliseconds fdr_curr(0);
 
 /**
  *  Real-time calculation factors 
@@ -25,7 +31,7 @@ void create_aircrafts(aircraft **ac_array, int size, _ac_map *map, int categorie
         cat_count[(rand()%categories)]++;            // assign randomly count for each type 
     }
     size--;
-    for(int type=0; type<categories; type++) {       // fill aircraft array
+    for(int type=(TOTAL_CATEGORIES-1); type>=0; type--) {       // fill aircraft array
         while(cat_count[type]) {
             ac_array[size] = new aircraft(size, (_ac_type)type, map, &calc_factors);
             size--;
@@ -78,13 +84,58 @@ void fault_service(_fault_map *q) {
         auto entry = q->begin();
         get_counter_val(&curr);
         if((curr) >= (entry->first)) {              // check if its time for fault 
-            cout << "Injecting fault for " << entry->second << endl; 
+            //cout << "Injecting fault for " << entry->second << endl; 
             set_fault_sig(entry->second, 1);        // set the fault signal for Aircraft
             q->erase(entry);                        // remove from map
         }
     }
 }
 
-int data_recorder_service() {
-    return 0;
+ofstream open_log_file(const string &filename) {
+    ofstream outfile(filename, ios::out);  
+    return outfile;  
+}
+
+void close_file(ofstream &outfile) {
+    if (outfile.is_open()) {
+        outfile.close();
+    }
+}
+
+bool write_to_file(ofstream &outfile, const string &line) {
+    bool ret = true;
+    if (outfile.is_open()) {
+        ret = true;
+        outfile << line << '\n';
+    }
+    
+    return ret;
+}
+/**
+ * Data line:
+ * {"timestamp" "ac_num" "company" "status" "flight_time" "miles_travelled" "battery_soc" "c_id" "charge_time"}
+ * 
+ */
+void data_recorder_service(aircraft **ac_array, int size, ofstream &outfile) {
+    milliseconds interval(FDR_INTERVAL);;
+    if((ac_array) && (size>=0) && isduration(fdr_curr, interval)) {
+        get_counter_val(&fdr_curr);
+
+        ostringstream line;
+        line << fdr_curr.count() << " ";
+        for (int i = 0; i < TOTAL_AIRCRAFTS; ++i) {
+            aircraft *ac = ac_array[i];
+
+            line << ac->get_ac_num() << " ";
+            line << ac->get_company() << " ";
+            line << ac->get_ac_status() << " ";
+            line << fixed << setprecision(4) << ac->get_flight_time() << " ";
+            line << fixed << setprecision(4) << ac->get_miles() << " ";
+            line << fixed << setprecision(4) << ac->get_battery_soc() << " ";
+            line << ac->get_charger_id() << " ";
+            line << fixed << setprecision(4) << ac->get_charge_time() << " ";
+        }
+        // dump to file
+        write_to_file(outfile, line.str());
+    }
 }
