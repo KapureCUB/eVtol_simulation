@@ -21,6 +21,7 @@
 
 using namespace std;
 
+// Aircraft companies
 typedef enum COMPANY {
     ALPHA=0,
     BRAVO=1,
@@ -30,6 +31,7 @@ typedef enum COMPANY {
     TOTAL_CATEGORIES
 } _ac_type;
 
+// Aircraft status
 typedef enum STATUS {
     STANDBY=-1,
     IN_FLIGHT=0,
@@ -39,12 +41,14 @@ typedef enum STATUS {
     SUSPENDED=4
 } _ac_stat;
 
+// Charger status
 typedef enum {
     OUT_OF_SERVICE=0,
     READY_TO_CHARGE=1,
     BUSY_CHARGING=2
 } _charger_stat;
 
+// Chargers
 typedef enum CHARGER {
     NO_CHARGER=0,
     CHARGER_1=1,
@@ -52,6 +56,13 @@ typedef enum CHARGER {
     CHARGER_3=3
 } _charger_id;
 
+/**
+ * @brief Stores information and usage history of a charger.
+ *
+ * @var status Current status of the charger.
+ * @var use_time Total usage time in milliseconds.
+ * @var history Vector recording past usage durations or events.
+ */
 typedef struct CHARGER_INFO {
     _charger_stat status;
     int use_time;
@@ -59,11 +70,28 @@ typedef struct CHARGER_INFO {
     // TO DO: More parameters can be added
 } _charger_info;
 
+/**
+ * @brief Represents an entry in the charging queue.
+ *
+ * @var ac_num Aircraft number associated with this entry.
+ * @var charge_time Charging duration required (in milliseconds or hours).
+ */
 typedef struct CHARGE_QUEUE_ENTRY {
     int ac_num;
     int charge_time;
 } _c_queue_entry;
 
+/**
+ * @brief Contains static information about an aircraft.
+ *
+ * @var ac_num Aircraft identification number.
+ * @var company Aircraft manufacturer type.
+ * @var speed Cruise speed in miles per hour.
+ * @var batt_cap Battery capacity in watt-hours (Wh).
+ * @var toc_hrs Time to charge in hundredths of hours (hours * 100).
+ * @var energy_use Energy consumption at cruise in Wh per mile.
+ * @var passengers Number of passengers the aircraft can carry.
+ */
 typedef struct AC_INFO {
     int ac_num;
     _ac_type company;
@@ -74,10 +102,18 @@ typedef struct AC_INFO {
     int passengers;         // number of passengers
 } _ac_info;
 
+// Definitions for maps
 typedef map<_ac_type, vector<int>> _ac_map;
 typedef map<_ac_type, double> _prob_map;
 typedef map<milliseconds, int> _fault_map;
 
+/**
+ * @class aircraft
+ * @brief Represents an aircraft with status, flight, battery, and charging management.
+ *        Stores static aircraft info and dynamic state such as flight time, battery state,
+ *        charging status, and fault tracking. Supports state machine logic for flight,
+ *        charging, and maintenance states.
+ */
 class aircraft {
     private:
         pid_t tid;
@@ -95,6 +131,7 @@ class aircraft {
         int downtime;
         map<_ac_type, vector<double>> *calc_factors;
     public:
+        // Constructors
         aircraft(int num, _ac_type com, _ac_map *m, map<_ac_type, vector<double>> *c) {
             if((com<=4) && (com>=0) && m) {
                 vector<int> para = m->at(com);
@@ -120,33 +157,13 @@ class aircraft {
                 calc_factors = c;
             }
         }
-        
+        // Destructors
         ~aircraft() {}
 
-        int get_ac_num() {
-            return (this->ac).ac_num;
-        }
-
-        int get_ac_status() {
-            return status;
-        }
-
-        _ac_type get_company() {
-            return (this->ac).company;
-        }
-
-        int get_passengers() {
-            return (this->ac).passengers;
-        }
-
-        _ac_info *get_ac_info() {
-            return (&ac);
-        }
-
+        // Setter functions
         void set_status(_ac_stat s) {
             status = s;
         }
-
         void update_ac_stats(milliseconds t) {
             if(status==IN_FLIGHT) {
                 flight_time += (t.count() * REAL_TO_REEL_TIME_FACTOR);
@@ -156,6 +173,22 @@ class aircraft {
             }
         }
 
+        // Getter functions
+        int get_ac_num() {
+            return (this->ac).ac_num;
+        }
+        int get_ac_status() {
+            return status;
+        }
+        _ac_type get_company() {
+            return (this->ac).company;
+        }
+        int get_passengers() {
+            return (this->ac).passengers;
+        }
+        _ac_info *get_ac_info() {
+            return (&ac);
+        }
         double get_flight_time() { return flight_time; }
         double get_charge_time() { return charge_time; }
         double get_miles() { return miles_travelled; }
@@ -163,7 +196,7 @@ class aircraft {
         double get_battery_soc() { return battery_soc; }
         int get_charger_id() { return c_id; }
 
-
+        // State machine for aircraft simulation
         void state_machine(milliseconds t, int charge_sig, int *fault_sig, queue<_c_queue_entry*> *cq) {
             switch(status) {
                 case IN_FLIGHT:
@@ -249,6 +282,11 @@ class aircraft {
         }
 };
 
+/**
+ * @class charger
+ * @brief Manages the state, usage, and history of three chargers.
+ *        Tracks the status, usage time, and assigned aircraft for each charger.
+ */
 class charger {
     private:
         _charger_info charger1;

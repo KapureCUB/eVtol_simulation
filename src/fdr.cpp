@@ -1,20 +1,34 @@
+/**
+ * @brief   Flight Data Recorder file  
+ * @details This file contains the flight data recorder functions for the eVtol simulation problem from Joby Avation.
+ *          File contains file IO functions, fault service and fault injection algorithm. 
+ * 
+ * @author  Deepak E Kapure
+ * @date    07-02-2025 
+ * 
+ */
+
 #include "../includes/definitions.hpp"
 #include "../includes/ac_simul.hpp"
-
 #include <random>
 #include <cmath>
 #include <sstream>
 #include <iomanip>
 
+/**
+ * @brief Macro for fault service execution interval in milliseconds
+ * 
+ */
 #define FDR_INTERVAL                (1000)
 
 milliseconds fdr_curr(0);
 
 /**
- *  Real-time calculation factors 
- *  
- */ 
-// { company, { energy used per simulation time, battery cap per % soc, miles travelled per simul time x 100 } }
+ *  @brief Real-time calculation factors. The eVTOL_Simul_analysis.xlsx file contains 
+ *         the analysis behind these factors.
+ *         Format:
+ *         { company, { energy used per simulation time, battery cap per % soc, miles travelled per simul time x 100 } }
+ */  
 map<_ac_type, vector<double>> calc_factors = {
     { ALPHA,   {3.2, 3200, 0.002} },
     { BRAVO,   {2.5, 1000, 0.001666} },
@@ -23,6 +37,17 @@ map<_ac_type, vector<double>> calc_factors = {
     { ECHO,    {2.9, 1500, 0.0005} }
 }; 
 
+/**
+ * @brief Initializes and populates the aircraft array with categorized aircraft.
+ *        Randomly distributes aircraft across types and creates instances accordingly.
+ *
+ * @param ac_array Array to store aircraft pointers.
+ * @param size Total number of aircraft.
+ * @param map Pointer to aircraft configuration map.
+ * @param categories Number of aircraft categories.
+ *
+ * @return None
+ */
 void create_aircrafts(aircraft **ac_array, int size, _ac_map *map, int categories) {
     vector<int> cat_count(categories, 1);            // init array to atleasst 1 for each type
     int remain = (size - categories);
@@ -40,6 +65,14 @@ void create_aircrafts(aircraft **ac_array, int size, _ac_map *map, int categorie
     }
 }
 
+/**
+ * @brief Deletes dynamically allocated aircraft objects in the array.
+ *
+ * @param ac_array Array of pointers to aircraft objects.
+ * @param size Number of aircraft in the array.
+ *
+ * @return None
+ */
 void delete_aircrafts(aircraft **ac_array, int size) {
     if((ac_array) && (size)) {
         size--;
@@ -49,9 +82,21 @@ void delete_aircrafts(aircraft **ac_array, int size) {
     }
 }   
 /**
- * Ref: https://cplusplus.com/reference/random/exponential_distribution/
- *      https://www.geeksforgeeks.org/probability-distributions-exponential-distribution/
- *      https://www.scribbr.com/statistics/poisson-distribution/
+ * 
+ */
+/**
+ * @brief Injects faults into aircraft based on exponential failure probability.
+ *        Generates fault events over simulation time and inserts them into the fault map.
+ *        Ref: https://cplusplus.com/reference/random/exponential_distribution/
+ *             https://www.geeksforgeeks.org/probability-distributions-exponential-distribution/
+ *             https://www.scribbr.com/statistics/poisson-distribution/
+ *
+ * @param pmap Pointer to the failure probability map by aircraft company.
+ * @param ac_array Array of aircraft pointers.
+ * @param size Number of aircraft.
+ * @param q Pointer to the fault event map (timestamp to aircraft number).
+ *
+ * @return None
  */
 void fault_injection(_prob_map *pmap, aircraft **ac_array, int size, _fault_map *q) {
     double lambda_min, next_failure;
@@ -78,6 +123,14 @@ void fault_injection(_prob_map *pmap, aircraft **ac_array, int size, _fault_map 
     }
 }
 
+/**
+ * @brief Checks and injects faults based on scheduled fault events.
+ *        Sets fault signals for aircraft when the fault time is reached and removes events from the queue.
+ *
+ * @param q Pointer to the fault event map (timestamp to aircraft number).
+ *
+ * @return None
+ */
 void fault_service(_fault_map *q) {
     milliseconds curr;
     if(q && !(q->empty())) {                        // enter only if map list is not empty
@@ -91,17 +144,39 @@ void fault_service(_fault_map *q) {
     }
 }
 
+/**
+ * @brief Opens a file for writing, creating or overwriting it.
+ *
+ * @param filename Name of the file to open.
+ *
+ * @return ofstream object associated with the file.
+ */
 ofstream open_log_file(const string &filename) {
     ofstream outfile(filename, ios::out);  
     return outfile;  
 }
 
+/**
+ * @brief Closes the given file stream if it is open.
+ *
+ * @param outfile Reference to the ofstream to close.
+ *
+ * @return None
+ */
 void close_file(ofstream &outfile) {
     if (outfile.is_open()) {
         outfile.close();
     }
 }
 
+/**
+ * @brief Writes a line to the opened file stream.
+ *
+ * @param outfile Reference to the open ofstream.
+ * @param line The string line to write.
+ *
+ * @return True if write was successful; false otherwise.
+ */
 bool write_to_file(ofstream &outfile, const string &line) {
     bool ret = true;
     if (outfile.is_open()) {
@@ -111,10 +186,18 @@ bool write_to_file(ofstream &outfile, const string &line) {
     
     return ret;
 }
+
 /**
- * Data line:
- * {"timestamp" "ac_num" "company" "status" "flight_time" "miles_travelled" "battery_soc" "c_id" "charge_time"}
+ * @brief Records aircraft data at fixed intervals and writes to the output file.
+ *        Collects flight and charging parameters from all aircraft and logs them as a single line.
+ *        Data line:
+ *        {"timestamp" "ac_num" "company" "status" "flight_time" "miles_travelled" "battery_soc" "c_id" "charge_time" ...}
  * 
+ * @param ac_array Array of pointers to aircraft objects.
+ * @param size Number of aircraft in the array.
+ * @param outfile Output file stream to write the data.
+ *
+ * @return None
  */
 void data_recorder_service(aircraft **ac_array, int size, ofstream &outfile) {
     milliseconds interval(FDR_INTERVAL);;

@@ -5,6 +5,13 @@
 #include <thread>
 #include <barrier>
 
+/**
+ * @brief Represents the live status of a charger.
+ *
+ * @var status Current charger status.
+ * @var ac_num Aircraft number currently charging.
+ * @var c_time_left Remaining charging time.
+ */
 typedef struct CHARGER_LIVE_INFO {
     _charger_stat status;
     int ac_num;
