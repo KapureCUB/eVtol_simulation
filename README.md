@@ -82,7 +82,7 @@ Manages 3 charger units:
 ### Run
 
 - Run the executible `evtol_sim` using the following command `./evtol_sim`
-- Simulation time and input can be changed by chaging the below parameters in definition.hpp
+- Simulation time and input can be changed by chaging the below parameters in `definition.hpp`
     <pre><code> 
     #define SIMULATION_TIME_HRS      (3) 
     #define TOTAL_AIRCRAFTS          (20) 
