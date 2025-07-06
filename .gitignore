@@ -39,3 +39,8 @@
 
 # debug information files
 *.dwo
+
+# VSCode settings
+.vscode/
+.history/
+*.code-workspace
