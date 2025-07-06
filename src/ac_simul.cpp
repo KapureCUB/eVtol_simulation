@@ -15,8 +15,8 @@
  *        Units are in milliseconds.
  * 
  */
-#define SERVICE_INTERVAL        (10)
-#define CHARGING_INTERVAL       (5)                     // lower than simulation service to reduce downtime
+#define SERVICE_INTERVAL        (50)
+#define CHARGING_INTERVAL       (25)                     // lower than simulation service to reduce downtime
 
 /**
  * @brief Global flags for fault, termination and charge signalling

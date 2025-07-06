@@ -1,0 +1,11 @@
+Alpha: 2 Bravo: 4 Charlie: 5 Delta: 8 Echo: 1
+Faults:
+Aircraft_number: 14 Time: 25000
+Aircraft_number: 13 Time: 28000
+Aircraft_number: 13 Time: 54000
+Aircraft_number: 3 Time: 91000
+Aircraft_number: 12 Time: 102000
+Aircraft_number: 12 Time: 105000
+Aircraft_number: 5 Time: 115000
+Aircraft_number: 19 Time: 169000
+Total_time: 3 hours Simulation_Time: 3 minutes

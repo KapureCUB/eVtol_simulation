@@ -125,14 +125,15 @@ class aircraft {
         _ac_info ac;
         double flight_time;                    // in hours
         double miles_travelled;                // in mile        
-        _ac_stat status;
-        _ac_stat prev_status;
-        int fault_count;
+        _ac_stat status;                       // current status of aircraft
+        _ac_stat prev_status;                  // state before going to maintainence
+        int fault_count;                       // total faults encountered
         double battery_soc;                    // 100 to 0
-        double bat_cap_used;
-        _charger_id c_id;
+        double bat_cap_used;                   // Usede battery capacity 
+        _charger_id c_id;                      // charger id on which aircarft is currently charging
         double charge_time;                    // in hours
         int charge_time_offset;                // offset to subtract from charge time
+        int charge_sessions;                   // number of charge sesssions that the aircraft went for
         int downtime;
         map<_ac_type, vector<double>> *calc_factors;
     public:
@@ -200,6 +201,7 @@ class aircraft {
         double get_fault_count() { return fault_count; }
         double get_battery_soc() { return battery_soc; }
         int get_charger_id() { return c_id; }
+        int get_charger_sessions() { return charge_sessions; }
 
         // State machine for aircraft simulation
         void state_machine(milliseconds t, int charge_sig, int *fault_sig, queue<_c_queue_entry*> *cq) {
@@ -208,7 +210,6 @@ class aircraft {
                     if(*fault_sig==1) {
                         fault_count++;
                         *fault_sig = 0;
-                        cout << "Flight: " << ac.ac_num << " sent to maintenance" << endl;
                         status = UNDER_MAINTENANCE;
                     } else {
                         update_ac_stats(t);
@@ -219,7 +220,6 @@ class aircraft {
                             n->charge_time = ac.toc_hrs*SIMULATION_FACTOR/100;
                             cq->push(n);
                             status = IN_CHARGE_QUEUE;
-                            cout << "Flight: " << ac.ac_num << " sent to charging" << endl;
                         }
                     }
                     break;
@@ -227,12 +227,12 @@ class aircraft {
                     if(*fault_sig==1) {
                         fault_count++;
                         *fault_sig = 0;
-                        cout << "Flight: " << ac.ac_num << " sent to maintenance" << endl;
                         status = UNDER_MAINTENANCE;
                     } else {
                         if(charge_sig > 0) {
                             c_id = (_charger_id)(charge_sig);
                             status = CHARGING;
+                            charge_sessions++;
                         }
                     }
                     break;
@@ -241,7 +241,6 @@ class aircraft {
                         fault_count++;
                         c_id = NO_CHARGER;
                         *fault_sig = 2;                                 // setting to 2 to notify charging service
-                        cout << "Flight: " << ac.ac_num << " sent to maintenance" << endl;
                         status = UNDER_MAINTENANCE;
                     } else {
                         charge_time += (t.count() * REAL_TO_REEL_TIME_FACTOR);
@@ -252,7 +251,6 @@ class aircraft {
                             battery_soc = 100;
                             c_id = NO_CHARGER;
                             status = IN_FLIGHT;
-                            cout << "Flight: " << ac.ac_num << " air borne after charging" << endl;
                         }
                     }
                     break;
@@ -272,6 +270,7 @@ class aircraft {
                             cq->push(n);
                             charge_time_offset = 0;
                             status = IN_CHARGE_QUEUE;
+                            if(prev_status == CHARGING) { charge_sessions--; }       // prev charge session was not complete. Removing it.
                         } else {
                             status = prev_status;
                         }
@@ -283,7 +282,6 @@ class aircraft {
                     break;
 
             };
-            //cout << "Servicing aircraft: " << ac.ac_num << endl;
         }
 };
 
@@ -357,5 +355,6 @@ void data_recorder_service(aircraft **ac_array, int size, ofstream &outfile);
 ofstream open_log_file(const string &filename);
 void close_file(ofstream &outfile);
 bool write_to_file(ofstream &outfile, const string &line);
+void sim_analysis(aircraft **ac_array, int size, int categories, ofstream &outfile);
 
 #endif //_DEFINITIONS_

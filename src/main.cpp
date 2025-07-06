@@ -15,6 +15,7 @@
  * 
  */
 const string log_file = "evtol_sim_log.txt";
+const string base_log_header = " Aircraft_num Company Status Flight_time Miles_travelled Battery_soc Charger_id Charge_time Fault_count Charge_sessions ";
 static _ac_map paramter_map = {
     { ALPHA,   {120, 320000, 60, 1600, 4} },
     { BRAVO,   {100, 100000, 20, 1500, 5} },
@@ -57,8 +58,13 @@ int main() {
     // Spawn threads
     spawn_threads(&threadpool, TOTAL_AIRCRAFTS, aircraft_array, &charger_queue);
 
-    // open log file for dumping flight data
+    // open log file for dumping flight data and insert data header
     fp = open_log_file(log_file);
+    string extended_header = "Timestamp";
+    for(auto ac=0; ac<TOTAL_AIRCRAFTS; ac++) {
+        extended_header.append(base_log_header);
+    }
+    write_to_file(fp, extended_header);
     
     // Initialize global timer
     init_Timer();
@@ -94,6 +100,7 @@ int main() {
         " hours, miles: " << a->get_miles() << ", faults: " << a->get_fault_count() << endl;  
     }
 
+    sim_analysis(aircraft_array, TOTAL_AIRCRAFTS, TOTAL_CATEGORIES, fp);
     cout << "\nFlight data recorded in file: " << log_file << endl;
     
     // Executing exit sequence
