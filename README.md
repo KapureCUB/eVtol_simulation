@@ -33,7 +33,7 @@ This project simulates a fleet of electric Vertical Takeoff and Landing (eVtol) 
 | `definitions.hpp`     | Constants, enums, macros, and shared type definitions                   |
 | `ac_simul.hpp`        | Declarations for aircraft simulation and charger control functions      |
 | `timer.cpp/hpp`       | Simulation timer functions and helpers                                  |
-| `Makefile`            | Build script (if applicable)                                            |
+| `Makefile`            | Build script                                                            |
 | `evtol_sim_log.txt`   | Output log file with recorded data for analysis                         |
 | `evtol_sim_input.txt` | Summary of initial inputs for aircraft simulation                       |
 
