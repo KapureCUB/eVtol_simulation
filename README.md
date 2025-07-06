@@ -1,8 +1,8 @@
-# eVTOL Simulation Framework
+# eVtol Simulation Problem
 
 ## 1. Description
 
-This project simulates a fleet of electric Vertical Takeoff and Landing (eVTOL) aircraft operating over a set time period. The simulation models flight dynamics, fault injection, charging behavior, and data logging. It is designed to analyze aircraft performance under probabilistic fault conditions and constrained charger availability.
+This project simulates a fleet of electric Vertical Takeoff and Landing (eVtol) aircraft operating over a set time period. The simulation models flight dynamics, fault injection, charging behavior, and data logging. It is designed to analyze aircraft performance under probabilistic fault conditions and constrained charger availability.
 
 ### Key Assumptions
 
@@ -81,16 +81,13 @@ Manages 3 charger units:
 
 - Run the executible `evtol_sim` using the following command `./evtol_sim`
 - Simulation time and input can be changed by chaging the below parameters in definition.hpp
-    """
-        #define SIMULATION_TIME_HRS  3
-        #define TOTAL_AIRCRAFTS      20
-        #define SIMULATION_FACTOR    (60*1000)  // 1 min = 1 hr real time
-    """
+    <pre><code>```cpp #define SIMULATION_TIME_HRS 3 #define TOTAL_AIRCRAFTS 20 #define SIMULATION_FACTOR (60*1000) // 1 min = 1 hr real time ``` </code></pre>
 
 ### Results
 
 - Both input and output logs are saved in the `evtol_sim_input.txt` and `evtol_sim_log.txt` and are formated to to opened in excel convinently.
 - Parameters saved in input log: Distribution of aircrafts and fault times per aircraft numbers based on the probablity
+![Input log on console](https://github.com/KapureCUB/eVtol_simulation/blob/main/console_log.png)
 - Parameters saved in output log: Aircraft state parameters and final simulation analysis
-
+- Sample log included in `Sample_evtol_sim_log.txt`. This has data for 3 hours and 20 aircrafts.
 
